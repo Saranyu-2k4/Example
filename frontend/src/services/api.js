@@ -1,0 +1,104 @@
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Add token to requests
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Auth API
+export const authAPI = {
+  register: (data) => api.post('/auth/register', data),
+  login: (data) => api.post('/auth/login', data),
+  verifyEmail: (otp) => api.post('/auth/verify-email', { otp }),
+  resendOTP: () => api.post('/auth/resend-otp'),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (data) => api.post('/auth/reset-password', data),
+  getMe: () => api.get('/auth/me')
+};
+
+// Items API
+export const itemsAPI = {
+  create: (data) => {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      if (data[key] !== null && data[key] !== undefined) {
+        formData.append(key, data[key]);
+      }
+    });
+    return api.post('/items', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  getAll: (params) => api.get('/items', { params }),
+  getById: (id) => api.get(`/items/${id}`),
+  getMy: () => api.get('/items/my/items'),
+  updateStatus: (id, status) => api.put(`/items/${id}/status`, { status }),
+  delete: (id) => api.delete(`/items/${id}`),
+  getStats: () => api.get('/items/stats')
+};
+
+// Claims API
+export const claimsAPI = {
+  create: (item_id) => api.post('/claims', { item_id }),
+  getMy: () => api.get('/claims/my'),
+  getById: (id) => api.get(`/claims/${id}`),
+  getPending: () => api.get('/claims/pending')
+};
+
+// Security API
+export const securityAPI = {
+  verifyClaim: (claim_id, otp) => api.post('/security/verify-claim', { claim_id, otp }),
+  receiveItem: (data) => api.post('/security/receive-item', data),
+  getTransactions: (params) => api.get('/security/transactions', { params }),
+  getStats: () => api.get('/security/stats'),
+  getPendingClaims: () => api.get('/security/pending-claims')
+};
+
+// Admin API
+export const adminAPI = {
+  getUsers: (params) => api.get('/admin/users', { params }),
+  getPendingApprovals: (params) => api.get('/admin/pending-approvals', { params }),
+  approveUser: (id) => api.put(`/admin/approve-user/${id}`),
+  banUser: (id, banned) => api.put(`/admin/ban-user/${id}`, { banned }),
+  suspendUser: (id, suspended) => api.put(`/admin/suspend-user/${id}`, { suspended }),
+  getReports: (params) => api.get('/admin/reports', { params }),
+  handleReport: (id, data) => api.put(`/admin/reports/${id}`, data),
+  getStats: () => api.get('/admin/stats'),
+  getItems: (params) => api.get('/admin/items', { params }),
+  getTransactions: (params) => api.get('/admin/transactions', { params })
+};
+
+// Notifications API
+export const notificationsAPI = {
+  getAll: () => api.get('/notifications'),
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+  markAsRead: (id) => api.put(`/notifications/${id}/read`),
+  markAllAsRead: () => api.put('/notifications/read-all'),
+  delete: (id) => api.delete(`/notifications/${id}`)
+};
+
+// Reports API
+export const reportsAPI = {
+  create: (data) => api.post('/reports', data),
+  getMy: () => api.get('/reports/my')
+};
+
+export default api;

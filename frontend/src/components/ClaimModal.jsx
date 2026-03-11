@@ -1,0 +1,144 @@
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import './ClaimModal.css';
+import NICClaim from './claims/NICClaim';
+import IDClaim from './claims/IDClaim';
+import BankCardClaim from './claims/BankCardClaim';
+import PurseClaim from './claims/PurseClaim';
+import OtherItemClaim from './claims/OtherItemClaim';
+import OTPDisplay from './OTPDisplay';
+
+const ClaimModal = ({ isOpen, onClose, item }) => {
+  const [currentStep, setCurrentStep] = useState('select'); // select, form, otp
+  const [generatedOTP, setGeneratedOTP] = useState('');
+  const [claimData, setClaimData] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
+  if (!isOpen || !item) return null;
+
+  const getCategoryComponent = () => {
+    switch (item.category?.toLowerCase()) {
+      case 'nic':
+        return (
+          <NICClaim
+            item={item}
+            onSubmit={(userData) => {
+              setClaimData(userData);
+              setGeneratedOTP(generateOTP());
+              setCurrentStep('otp');
+            }}
+            onCancel={() => setCurrentStep('select')}
+          />
+        );
+      case 'student id':
+      case 'staff id':
+        return (
+          <IDClaim
+            item={item}
+            idType={item.category}
+            onSubmit={(userData) => {
+              setClaimData(userData);
+              setGeneratedOTP(generateOTP());
+              setCurrentStep('otp');
+            }}
+            onCancel={() => setCurrentStep('select')}
+          />
+        );
+      case 'bank cards':
+      case 'bank card':
+        return (
+          <BankCardClaim
+            item={item}
+            onSubmit={(userData) => {
+              setClaimData(userData);
+              setGeneratedOTP(generateOTP());
+              setCurrentStep('otp');
+            }}
+            onCancel={() => setCurrentStep('select')}
+          />
+        );
+      case 'purse':
+      case 'wallet':
+      case 'purse / wallet':
+        return (
+          <PurseClaim
+            item={item}
+            onSubmit={(userData) => {
+              setClaimData(userData);
+              setGeneratedOTP(generateOTP());
+              setCurrentStep('otp');
+            }}
+            onCancel={() => setCurrentStep('select')}
+          />
+        );
+      default:
+        return (
+          <OtherItemClaim
+            item={item}
+            onSubmit={(userData) => {
+              setClaimData(userData);
+              setGeneratedOTP(generateOTP());
+              setCurrentStep('otp');
+            }}
+            onCancel={() => setCurrentStep('select')}
+          />
+        );
+    }
+  };
+
+  const generateOTP = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
+
+  const modalContent = (
+    <>
+      <div className="claim-modal-backdrop" onClick={onClose}></div>
+
+      <div className="claim-modal" role="dialog" aria-modal="true" aria-label="Claim item form">
+        <div className="modal-header">
+          <h2>Claim Item</h2>
+          <button className="claim-modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="modal-content">
+          {currentStep === 'select' && (
+            <div className="category-form">
+              <h3>Item: {item.name}</h3>
+              <p className="category-desc">Preparing claim form for {item.category}</p>
+              <button
+                onClick={() => setCurrentStep('form')}
+                className="btn btn-primary"
+              >
+                Continue to Claim
+              </button>
+            </div>
+          )}
+
+          {currentStep === 'form' && getCategoryComponent()}
+
+          {currentStep === 'otp' && (
+            <OTPDisplay
+              otp={generatedOTP}
+              category={item.category}
+              onClose={onClose}
+            />
+          )}
+        </div>
+      </div>
+    </>
+  );
+
+  return createPortal(modalContent, document.body);
+};
+
+export default ClaimModal;
